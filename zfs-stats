@@ -1,4 +1,4 @@
-#!/usr/bin/env -iS perl
+#!/usr/local/bin/perl
 #
 # $Id$
 #
@@ -336,7 +336,14 @@ sub _arc_summary {
 
 	### ARC Sizing ###
 	my $arc_size = $Kstat->{"kstat.zfs.misc.arcstats.size"};
-	my $mru_size = $Kstat->{"kstat.zfs.misc.arcstats.p"};
+	my $l2_hdr_size = $Kstat->{"kstat.zfs.misc.arcstats.l2_hdr_size"};
+	my $hdr_size = $Kstat->{"kstat.zfs.misc.arcstats.hdr_size"};
+	my $other_size = $Kstat->{"kstat.zfs.misc.arcstats.other_size"};
+	my $data_size = $Kstat->{"kstat.zfs.misc.arcstats.data_size"};
+	my $mfu_size = $Kstat->{"vfs.zfs.mfu_size"};
+	my $mru_size = $Kstat->{"vfs.zfs.mru_size"};
+	my $anon_size = $Kstat->{"vfs.zfs.anon_size"};
+	my $target_mru_size = $Kstat->{"kstat.zfs.misc.arcstats.p"};
 	my $target_max_size = $Kstat->{"kstat.zfs.misc.arcstats.c_max"};
 	my $target_min_size = $Kstat->{"kstat.zfs.misc.arcstats.c_min"};
 	my $target_size = $Kstat->{"kstat.zfs.misc.arcstats.c"};
@@ -352,22 +359,29 @@ sub _arc_summary {
 	printf("\tMax Size (High Water):\t\t%d:1\t%s\n",
 		$target_size_ratio, fBytes($target_max_size));
 
-	print "\nARC Size Breakdown:\n";
-	if ($arc_size > $target_size) {
-		my $mfu_size = ($arc_size - $mru_size);
-		printf("\tRecently Used Cache Size:\t%s\t%s\n",
-			fPerc($mru_size, $arc_size), fBytes($mru_size));
-		printf("\tFrequently Used Cache Size:\t%s\t%s\n",
-			fPerc($mfu_size, $arc_size), fBytes($mfu_size));
-	}
+	print "\nTarget ARC Size Breakdown:\n";
+	printf("\tHeaders Size:\t\t\t%s\t%s\n",
+		fPerc($hdr_size, $arc_size), fBytes($hdr_size));
+	printf("\tL2 Headers Size:\t\t%s\t%s\n",
+		fPerc($l2_hdr_size, $arc_size), fBytes($l2_hdr_size));
+	printf("\tOther Size:\t\t\t%s\t%s\n",
+		fPerc($other_size, $arc_size), fBytes($other_size));
+	printf("\tCache Data Size:\t\t%s\t%s\n",
+		fPerc($data_size, $arc_size), fBytes($data_size));
+	printf("\t\tRecently Used:\t\t%s\t%s\n",
+		fPerc($mru_size, $arc_size), fBytes($mru_size));
+	printf("\t\tFrequently Used:\t%s\t%s\n",
+		fPerc($mfu_size, $arc_size), fBytes($mfu_size));
+	printf("\t\tAnonymous:\t\t%s\t%s\n",
+		fPerc($anon_size, $arc_size), fBytes($anon_size));
+	print "\n";
 
-	if ($arc_size < $target_size) {
-		my $mfu_size = ($target_size - $mru_size);
-		printf("\tRecently Used Cache Size:\t%s\t%s\n",
-			fPerc($mru_size, $target_size), fBytes($mru_size));
-		printf("\tFrequently Used Cache Size:\t%s\t%s\n",
-			fPerc($mfu_size, $target_size), fBytes($mfu_size));
-	}
+	print "\nTarget ARC Size Breakdown:\n";
+	my $target_others_size = ($target_size - $target_mru_size);
+	printf("\tRecently Used Data Cache:\t%s\t%s\n",
+		fPerc($target_mru_size, $target_size), fBytes($target_mru_size));
+	printf("\tEverything Else:\t\t%s\t%s\n",
+		fPerc($target_others_size, $target_size), fBytes($target_others_size));
 	print "\n";
 
 	### ARC Hash Breakdown ###
